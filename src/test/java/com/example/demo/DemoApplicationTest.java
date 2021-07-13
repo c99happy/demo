@@ -1,14 +1,10 @@
 package com.example.demo;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
-
-@RunWith(SpringRunner.class)
+import static org.junit.jupiter.api.Assertions.assertEquals;
 @SpringBootTest
 public class DemoApplicationTest {
     @Autowired
@@ -16,8 +12,7 @@ public class DemoApplicationTest {
 
     @Test
     public void contextLoads() {
-
-        assertThat(helloService.test()).isEqualTo("hello");
+        assertEquals(helloService.test(), "hello");
 
     }
 
