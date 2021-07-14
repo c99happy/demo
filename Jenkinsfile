@@ -19,6 +19,7 @@ pipeline {
     stages {
         stage('拉取代码') {
             steps {
+                  echo "${URL}"
                   // Get some code from a GitHub repository
                   git credentialsId: 'github', url: 'git@github.com:c99happy/demo.git',branch: "${BRANCH}"
             }
@@ -40,6 +41,7 @@ pipeline {
                 sh "mkdir -p ${repo_code_dir}"
                 sh "cp ${WORKSPACE_1}/target/${artifactId}-${VERSION}.jar ${repo_code_dir}"
                 sh "cp ${WORKSPACE_1}/target/classes/stop.sh ${repo_code_dir}"
+                sh "cp ${WORKSPACE_1}/target/classes/startup.sh ${repo_code_dir}"
             }
         }
          stage('发布服务') {
