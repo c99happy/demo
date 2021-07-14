@@ -7,7 +7,7 @@ fi
   export SERVER_NAME="demo"
   export JAVA="$JAVA_HOME/bin/java"
   export BASE_DIR=`cd $(dirname $0)/.; pwd`
-  export DEFAULT_SEARCH_LOCATIONS="classpath:/,classpath:/config/,file:./,file:./conf ig/"
+  export DEFAULT_SEARCH_LOCATIONS="classpath:/"
   export CUSTOM_SEARCH_LOCATIONS=${DEFAULT_SEARCH_LOCATIONS},file:${BASE_DIR}/conf/
     JAVA_OPT="-XX:-OmitStackTraceInFastThrow -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=${BASE_DIR}/logs/java_heapdump.hprof"
     JAVA_OPT="${JAVA_OPT} -XX:-UseLargePages" JAVA_OPT="${JAVA_OPT} -jar ${BASE_DIR}/${SERVER_NAME}*.jar"
@@ -25,7 +25,7 @@ echo "server is starting，you can check the ${BASE_DIR}/logs/${SERVER_NAME}.out
 sleep 10
 pid=`ps ax | grep -i 'demo' | grep java | grep -v grep | awk '{print $1}'`
 if [ -z "$pid" ] ; then
-    echo "Start successfully!."
+    echo "Start fail!."
 else
-       echo "Start fail!."
+    echo "Start successfully!."
 fi
