@@ -18,18 +18,45 @@ pipeline {
 
     stages {
         stage('拉取代码') {
+            when {
+                expression{
+                  return ("${DEPLOY}" == "upgrade")
+                }
+            }
             steps {
-                  // Get some code from a GitHub repository
-                  git credentialsId: 'github', url: 'git@github.com:c99happy/demo.git',branch: "${BRANCH}"
+                echo "${URL}"
+                // Get some code from a GitHub repository
+                git credentialsId: 'github', url: "${PROJECT_URL}",branch: "${BRANCH}"
             }
         }
-
+        stage('测试代码') {
+            when {
+                expression{
+                  return ("${DEPLOY}" == "upgrade")
+                }
+            }
+            steps {
+                sh "mvn org.jacoco:jacoco-maven-plugin:prepare-agent clean test"
+                junit '**/target/surefire-reports/*.xml'
+                jacoco changeBuildStatus: true, maximumLineCoverage: '30'
+            }
+        }
         stage('打包服务') {
+           when {
+                expression{
+                  return ("${DEPLOY}" == "upgrade")
+                }
+            }
             steps {
                 sh "mvn clean package -Dmaven.test.skip=true"
             }
         }
         stage('移至代码仓库') {
+            when {
+                expression{
+                  return ("${DEPLOY}" == "upgrade")
+                }
+            }
             steps {
                 sh "mkdir -p ${repo_code_dir}"
                 sh "cp ${WORKSPACE_1}/target/${artifactId}-${VERSION}.jar ${repo_code_dir}"
@@ -37,22 +64,29 @@ pipeline {
                 sh "cp ${WORKSPACE_1}/target/classes/startup.sh ${repo_code_dir}"
             }
         }
-         stage('发布服务') {
+         stage('发布服务|回滚') {
                 steps {
-                    sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ts_ip} 'rm -rf /usr/local/src/${artifactId}/latest/*'"
-                    sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ts_ip} 'mkdir -p /usr/local/src/${artifactId}/latest/*'"
-                    sh "sshpass -p ${ts_pwd} scp -P ${ts_port} ${repo_code_dir}/${artifactId}-${VERSION}.jar ${ts_user}@${ts_ip}:/usr/local/src/${artifactId}/latest/"
-                    sh "sshpass -p ${ts_pwd} scp -P ${ts_port} ${repo_code_dir}/startup.sh ${ts_user}@${ts_ip}:/usr/local/src/${artifactId}/latest/"
-                    sh "sshpass -p ${ts_pwd} scp -P ${ts_port} ${repo_code_dir}/stop.sh ${ts_user}@${ts_ip}:/usr/local/src/${artifactId}/latest/"
+                    script {
+                        for(ip in ts_ips.tokenize(',')){
+                            sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ip} 'rm -rf /usr/local/src/${artifactId}/latest/*'"
+                            sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ip} 'mkdir -p /usr/local/src/${artifactId}/latest/conf'"
+                            sh "sshpass -p ${ts_pwd} scp -P ${ts_port} ${repo_code_dir}/${artifactId}-${VERSION}.jar ${ts_user}@${ip}:/usr/local/src/${artifactId}/latest/"
+                            sh "sshpass -p ${ts_pwd} scp -P ${ts_port} ${repo_code_dir}/startup.sh ${ts_user}@${ip}:/usr/local/src/${artifactId}/latest/"
+                            sh "sshpass -p ${ts_pwd} scp -P ${ts_port} ${repo_code_dir}/stop.sh ${ts_user}@${ip}:/usr/local/src/${artifactId}/latest/"
+                        }
+                    }
                 }
           }
           stage('启动服务') {
             steps {
-               sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ts_ip} 'chmod 775 /usr/local/src/${artifactId}/latest/stop.sh'"
-               sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ts_ip} '/usr/local/src/${artifactId}/latest/stop.sh'"
-               sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ts_ip} 'chmod 775 /usr/local/src/${artifactId}/latest/startup.sh'"
-               sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ts_ip} '/usr/local/src/${artifactId}/latest/startup.sh'"
-
+               script {
+                   for(ip in ts_ips.tokenize(',')){
+                       sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ip} 'chmod 775 /usr/local/src/${artifactId}/latest/stop.sh'"
+                       sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ip} '/usr/local/src/${artifactId}/latest/stop.sh'"
+                       sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ip} 'chmod 775 /usr/local/src/${artifactId}/latest/startup.sh'"
+                       sh "sshpass -p ${ts_pwd} ssh -p ${ts_port} ${ts_user}@${ip} '/usr/local/src/${artifactId}/latest/startup.sh'"
+                   }
+               }
           }
         }
     }
