@@ -12,7 +12,7 @@ public class DemoApplicationTest {
 
     @Test
     public void contextLoads() {
-        assertEquals(helloService.test(), "hello");
+        assertEquals(helloService.test(), "hello2");
 
     }
 
